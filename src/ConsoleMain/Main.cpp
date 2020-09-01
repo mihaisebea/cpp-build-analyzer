@@ -2,6 +2,8 @@
 
 #include <iostream>
 #include <string>
+#include <vector>
+#include <future>
 #include <cxxopts\cxxopts.hpp>
 
 #include "AnalysisData\Utilities\MiniDumpGeneration.h"
@@ -127,13 +129,15 @@ int main(int argc, char** argv)
     // export data
     if (succeeded)
     {
+        std::vector<std::future<bool>> futures;
         if (analysisOptions.FunctionCompilations)
         {
             std::cout << "Exporting function compilations..." << std::endl;
             
             if (!outputPathFunctionCompilations.empty())
             {
-                analyzer.ExportFunctionCompilationsData(outputPathFunctionCompilations);
+               auto future =  std::async(std::launch::async, &BuildAnalyzer::ExportFunctionCompilationsData, analyzer, outputPathFunctionCompilations);
+               futures.emplace_back(std::move(future));
             }
             else
             {
@@ -147,7 +151,8 @@ int main(int argc, char** argv)
 
             if (!outputPathFileInclusionTimes.empty())
             {
-                analyzer.ExportFileInclusionTimesData(outputPathFileInclusionTimes);
+                auto future = std::async(std::launch::async, &BuildAnalyzer::ExportFileInclusionTimesData, analyzer, outputPathFileInclusionTimes);
+                futures.emplace_back(std::move(future));
             }
             else
             {
@@ -161,7 +166,8 @@ int main(int argc, char** argv)
 
             if (!outputPathFileInclusionGraph.empty())
             {
-                analyzer.ExportFileInclusionGraph(outputPathFileInclusionGraph);
+                auto future = std::async(std::launch::async, &BuildAnalyzer::ExportFileInclusionGraph, analyzer, outputPathFileInclusionGraph);
+                futures.emplace_back(std::move(future));
             }
             else
             {
@@ -175,7 +181,8 @@ int main(int argc, char** argv)
 
             if (!outputPathFileCompilations.empty())
             {
-                analyzer.ExportFileCompilationsData(outputPathFileCompilations);
+                auto future = std::async(std::launch::async, &BuildAnalyzer::ExportFileCompilationsData, analyzer, outputPathFileCompilations);
+                futures.emplace_back(std::move(future));
             }
             else
             {
@@ -189,7 +196,8 @@ int main(int argc, char** argv)
             
             if (!outputPathBuildTimeline.empty())
             {
-                analyzer.ExportBuildTimeline(outputPathBuildTimeline);
+                auto future = std::async(std::launch::async, &BuildAnalyzer::ExportBuildTimeline, analyzer, outputPathBuildTimeline);
+                futures.emplace_back(std::move(future));
             }
             else
             {
@@ -203,12 +211,18 @@ int main(int argc, char** argv)
 
             if (!outputPathTemplateInstantiations.empty())
             {
-                analyzer.ExportTemplateInstantiationsData(outputPathTemplateInstantiations);
+                auto future = std::async(std::launch::async, &BuildAnalyzer::ExportTemplateInstantiationsData, analyzer, outputPathTemplateInstantiations);
+                futures.emplace_back(std::move(future));
             }
             else
             {
                 std::cout << "  Output path can't be empty!" << std::endl;
             }
+        }
+
+        for (auto& future : futures)
+        {
+            future.wait();
         }
     }
 
